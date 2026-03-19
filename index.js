@@ -1,6 +1,18 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Events, ActivityType, PermissionsBitField, EmbedBuilder } = require('discord.js');
 
+const express = require("express");
+const app = express();
+
+// Respond to GET requests at root
+app.get("/", (req, res) => {
+  res.send("Bot is alive!");
+});
+
+// Listen on the port Render provides
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -335,5 +347,7 @@ client.on(Events.MessageCreate, async (message) => {
         }
     }
 });
+
+
 
 client.login(process.env.DISCORD_TOKEN);
