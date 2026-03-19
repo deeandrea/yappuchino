@@ -21,9 +21,6 @@ const client = new Client({
 const DEVELOPER_ID = '315770147665215488';
 const PREFIX = 'bp.';
 
-/**
- * 🎀 TRIMMED DOMAIN MAP - ONLY TIKTOK & TWITTER 🎀
- */
 const domainMap = {
     'twitter.com': 'fxtwitter.com',
     'x.com': 'fxtwitter.com',
@@ -53,9 +50,6 @@ function extractCreatorHandle(urlStr, hostname) {
     }
 }
 
-/**
- * 🌸 ANILIST GRAPHQL HELPER 🌸
- */
 async function fetchAniList(search, type, isAdult) {
     const query = `
     query ($search: String, $type: MediaType, $isAdult: Boolean) {
@@ -87,9 +81,6 @@ async function fetchAniList(search, type, isAdult) {
     return data.data.Media;
 }
 
-/**
- * Rich Presence Logic
- */
 const cuteStatuses = [
     { text: 'nyan nyan 🐾', type: ActivityType.Playing },
     { text: 'f-fixing uwur winks~ ✨', type: ActivityType.Watching },
@@ -125,7 +116,6 @@ client.on(Events.MessageCreate, async (message) => {
     if (msgLower.includes('good bot')) message.react('💖').catch(() => {});
     else if (msgLower.includes('bad bot')) message.react('🥺').catch(() => {});
 
-    // 🎀 COMMAND HANDLING 🎀
     if (msgLower.startsWith(PREFIX)) {
         const args = message.content.slice(PREFIX.length).trim().split(/ +/);
         const command = args.shift().toLowerCase();
@@ -196,8 +186,6 @@ client.on(Events.MessageCreate, async (message) => {
         return;
     }
 
-    // 🌸 ANIME & MANGA SEARCH LOGIC 🌸
-    // Matches {anime} and <manga> but ignores <urls> and <:emojis:>
     const animeMatches = [...message.content.matchAll(/{([^}]+)}/g)];
     const mangaMatches = [...message.content.matchAll(/<([^>]+)>/g)].filter(m => !m[1].startsWith('http') && !m[1].startsWith(':') && !m[1].startsWith('a:'));
 
@@ -206,16 +194,14 @@ client.on(Events.MessageCreate, async (message) => {
     mangaMatches.forEach(m => searchRequests.push({ name: m[1], type: 'MANGA' }));
 
     if (searchRequests.length > 0) {
-        // Send typing indicator while searching AniList
         await message.channel.sendTyping();
         const isAdult = message.channel.nsfw;
 
-        for (const req of searchRequests.slice(0, 3)) { // Limit to 3 searches per message to prevent spam
+        for (const req of searchRequests.slice(0, 3)) {
             try {
                 const media = await fetchAniList(req.name, req.type, isAdult);
                 const title = media.title.english || media.title.romaji || media.title.native;
                 
-                // Clean AniList's HTML descriptions to Discord Markdown
                 let cleanDesc = media.description ? media.description.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '') : 'No description awaiwable... 🥺';
                 if (cleanDesc.length > 300) cleanDesc = cleanDesc.substring(0, 300) + `... [read morwe](${media.siteUrl})`;
 
@@ -224,22 +210,19 @@ client.on(Events.MessageCreate, async (message) => {
                 const statusStr = media.status ? media.status.replace('_', ' ') : 'UNKNOWN';
 
                 const mediaEmbed = new EmbedBuilder()
-    .setTitle(`🎀 ${title}`)
-    .setURL(media.siteUrl)
-    .setColor(color)
-    // 👇 Change .setThumbnail to .setImage 👇
-    .setImage(media.coverImage.large) 
-    .setDescription(`**Genres:** *${media.genres.join(', ')}*\n\n${cleanDesc}`)
-    .setFooter({ text: `${formatStr} • ${statusStr}`, iconURL: 'https://anilist.co/img/logo_al.png' });
+                    .setTitle(`🎀 ${title}`)
+                    .setURL(media.siteUrl)
+                    .setColor(color)
+                    .setImage(media.coverImage.large) 
+                    .setDescription(`**Genres:** *${media.genres.join(', ')}*\n\n${cleanDesc}`)
+                    .setFooter({ text: `${formatStr} • ${statusStr}`, iconURL: 'https://anilist.co/img/logo_al.png' });
 
                 await message.channel.send({ embeds: [mediaEmbed] });
             } catch (err) {
-                // Silently fail if not found, just like the python bot did
             }
         }
     }
 
-    // 🎀 AUTO-LINK FIXER LOGIC 🎀
     const matches = message.content.match(urlRegex);
 
     if (!matches && message.mentions.has(client.user)) {
