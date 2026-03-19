@@ -1,29 +1,55 @@
 # 🎀 FixedEmbed & AniList Bot 🌸
 
-A super cute, multipurpose Discord bot built with `discord.js`! It automatically fixes broken Twitter/X and TikTok embeds, fetches Anime and Manga details directly from AniList, and brings a whole lot of kawaii energy to your server. ( ˶ˆ꒳ˆ˵ )
+Welcome to the cutest, most helpful utility bot for your Discord server! ( ˶ˆ꒳ˆ˵ ) 
 
-## ✨ Features
-
-* **🛠️ Auto-Link Fixer:** Automatically detects `twitter.com`, `x.com`, and `tiktok.com` links and replaces them with their fixed embed equivalents (`fxtwitter` and `kktiktok`). It even extracts the creator's handle!
-* **📖 Anime & Manga Lookups:** Type any anime name in `{curly brackets}` or manga in `<angle brackets>` to instantly pull up its cover art, description, and status using the AniList GraphQL API.
-* **🧹 Smart Cleanup:** Automatically deletes the original ugly link message to keep your chat clean (unless the message has an attachment or is a reply, then it safely leaves it alone!).
-* **💖 Cute Interactions:** Give your friends virtual hugs and headpats.
-* **🌐 Keep-Alive Server:** Built-in Express web server to keep the bot alive on hosting platforms like Render or Replit.
-* **🎮 Rotating Statuses:** The bot cycles through a list of adorable Rich Presence statuses every 30 minutes.
+Have you ever tried to share a TikTok or Twitter/X link with your friends, only to realize the video or image won't embed properly? This bot is here to save the day! It automatically detects broken social media links, replaces them with fully functioning embedded versions, and cleans up the chat behind it. Plus, it comes packed with adorable social commands and an integrated Anime/Manga search!
 
 ---
 
-## 💻 Installation & Setup
+## 📑 Table of Contents
+1. [✨ Key Features](#-key-features)
+2. [🚀 Installation & Setup](#-installation--setup)
+3. [⚙️ Configuration & Customization](#️-configuration--customization)
+4. [⌨️ Commands List](#️-commands-list)
+5. [🔒 Required Permissions & Intents](#-required-permissions--intents)
+6. [🛠️ Troubleshooting & FAQ](#️-troubleshooting--faq)
+7. [💖 Contributing](#-contributing)
+
+---
+
+## ✨ Key Features
+
+### 🛠️ Auto-Link Fixer
+Discord natively struggles to embed videos from certain platforms. This bot actively listens for links from:
+* `twitter.com` & `x.com` ➡️ Converts to `fxtwitter.com`
+* `tiktok.com`, `vm.tiktok.com`, `vt.tiktok.com` ➡️ Converts to `kktiktok.com`
+
+**Smart Deletion:** When the bot fixes a link, it deletes your original message and reposts it as a beautiful embed with your profile picture and name. 
+*Note: If your original message contained a file attachment or was a direct reply to someone, the bot is smart enough to leave your original message alone so nothing gets lost!*
+
+### 📖 AniList GraphQL Integration
+Looking for a new show to binge? You can search the massive AniList database right from the chat:
+* Wrap an anime title in curly brackets: `{Jujutsu Kaisen}`
+* Wrap a manga title in angle brackets: `<Chainsaw Man>`
+The bot will return the official cover art, a description, genres, and the current release status!
+
+### 🫂 Kawaii Social Interactions
+Spread some love in your server! Use commands like `bp.hug` and `bp.pat` to interact with your friends (or the bot itself!).
+
+### 🌐 24/7 Uptime Ready
+Includes a built-in Express.js web server. This makes it incredibly easy to keep the bot online 24/7 using free hosting services like Render, UptimeRobot, or Replit.
+
+---
+
+## 🚀 Installation & Setup
 
 ### 1. Prerequisites
-* [Node.js](https://nodejs.org/) (v16.9.0 or newer)
-* A Discord Bot Token (Get one from the [Discord Developer Portal](https://discord.com/developers/applications))
+Before you begin, ensure you have the following installed:
+* [Node.js](https://nodejs.org/) (Version 16.9.0 or higher is required for Discord.js v14)
+* A Code Editor (like VS Code)
+* A Registered Discord Bot (Create one at the [Discord Developer Portal](https://discord.com/developers/applications))
 
-### 2. Clone and Install
+### 2. Clone the Repository
 ```bash
-# Clone the repository
 git clone [https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git)
 cd YOUR_REPO_NAME
-
-# Install dependencies
-npm install discord.js dotenv express
