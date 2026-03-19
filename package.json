@@ -1,7 +1,7 @@
 {
-  "name": "discord-embed-fixer",
+  "name": "wushishi",
   "version": "1.0.0",
-  "description": "A Discord bot that fixes social media embeds.",
+  "description": "just a cutie bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
