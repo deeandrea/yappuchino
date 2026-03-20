@@ -316,7 +316,7 @@ client.on(Events.MessageCreate, async (message) => {
                 "nyo way!! (・`ω´・)"
             ];
             const answer = eightBallReplies[Math.floor(Math.random() * eightBallReplies.length)];
-            return message.reply(`> *${textWithoutPing}*\n\n${answer}`).catch(() => {});
+            return message.reply(`${answer}`).catch(() => {});
         } else {
             const adorableReplies = [
                 "hewwo?? did u need me? (・`ω´・)",
