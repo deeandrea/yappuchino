@@ -36,7 +36,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           env: production
           deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-          environment_url: hhttps://yappachino.onrender.com
+          environment_url: https://yappachino.onrender.com
 
       - name: Mark Failure
         if: failure()
