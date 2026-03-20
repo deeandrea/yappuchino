@@ -1,28 +1,33 @@
-name: Render Deploy + GitHub Status
+name: Deploy to Render + GitHub Status
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create GitHub Deployment
-        id: deploy
+      - name: Create Deployment
+        id: deployment
         uses: bobheadxi/deployments@v1
         with:
           step: start
           token: ${{ secrets.GITHUB_TOKEN }}
           env: production
+          environment_url: https://yappachino.onrender.com
 
       - name: Trigger Render Deploy
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
 
-      - name: Mark Deployment Success
+      - name: Mark Success
         if: success()
         uses: bobheadxi/deployments@v1
         with:
@@ -30,9 +35,10 @@ jobs:
           status: success
           token: ${{ secrets.GITHUB_TOKEN }}
           env: production
-          deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          environment_url: hhttps://yappachino.onrender.com
 
-      - name: Mark Deployment Failed
+      - name: Mark Failure
         if: failure()
         uses: bobheadxi/deployments@v1
         with:
@@ -40,4 +46,4 @@ jobs:
           status: failure
           token: ${{ secrets.GITHUB_TOKEN }}
           env: production
-          deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
