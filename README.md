@@ -2,14 +2,22 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=FFB6C1,FF91A4&height=250&section=header&text=yappuchino&fontSize=80&fontColor=ffffff&fontAlignY=38&desc=fixing%20messy%20links,%20one%20embed%20at%20a%20time&descAlignY=60&descSize=22&animation=twinkling" alt="yappuchino Banner">
 
-# 🎀
-
 *The elegant, effortless solution to messy social media links in Discord.*
 
-<img src="https://img.shields.io/badge/Node.js-16.x-FFB6C1?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
-<img src="https://img.shields.io/badge/Discord.js-v14-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
+<div align="center">
+
+<a href="https://nodejs.org/en/download/">
+  <img src="https://img.shields.io/badge/Node.js-18.x-FFB6C1?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
+</a>
+<a href="https://discord.js.org/">
+  <img src="https://img.shields.io/badge/Discord.js-v14-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
+</a>
 <img src="https://img.shields.io/badge/Status-Active-FF91A4?style=for-the-badge" alt="Status">
-<img src="https://img.shields.io/badge/License-ISC-FF69B4?style=for-the-badge" alt="License">
+<a href="https://opensource.org/licenses/ISC">
+  <img src="https://img.shields.io/badge/License-ISC-FF69B4?style=for-the-badge" alt="License">
+</a>
+
+</div>
 
 </div>
 
@@ -47,13 +55,13 @@ Prefix your commands with `bp.` to interact with yappuchino!
 
 ### 🌸 Social & Utility
 
-| Command | Description | 
-| :--- | :--- | 
-| `bp.help` | Opens the interactive help menu. | 
-| `bp.avatar <@user>` | Grabs a high-res version of someone's profile picture. | 
-| `bp.serverinfo` | Displays a neat overview of the current server. | 
-| `bp.hug <@user>` | Wrap a friend in a big warm hug! | 
-| `bp.pat <@user>` | Give someone soft headpats. | 
+| Command | Aliases | Description | 
+| :--- | :--- | :--- | 
+| `bp.help` | `bp.cmds` | Opens the interactive help menu. | 
+| `bp.avatar` | `bp.av` | Grabs a high-res version of someone's profile picture. | 
+| `bp.serverinfo` | `bp.server` | Displays a neat overview of the current server. | 
+| `bp.hug <@user>` | - | Wrap a friend in a big warm hug! | 
+| `bp.pat <@user>` | - | Give someone soft headpats. | 
 
 ### 🔎 Search & Magic
 
@@ -65,11 +73,11 @@ Prefix your commands with `bp.` to interact with yappuchino!
 
 ### 🛠️ Moderation & Developer
 
-| Command | Description | 
-| :--- | :--- | 
-| `bp.cwean <1-99>` | Bulk deletes messages *(Requires Manage Messages permission)*. | 
-| `bp.stats` | **(Dev Only)** Shows bot uptime, ping, and memory usage. | 
-| `bp.restart` | **(Dev Only)** Safely shuts the bot down to restart. | 
+| Command | Aliases | Description | 
+| :--- | :--- | :--- | 
+| `bp.cwean` | `bp.purge` | Bulk deletes messages *(Requires Manage Messages permission)*. | 
+| `bp.stats` | `bp.info` | **(Dev Only)** Shows bot uptime, ping, and memory usage. | 
+| `bp.restart` | - | **(Dev Only)** Safely shuts the bot down to restart. | 
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
@@ -80,7 +88,7 @@ Want to invite yappuchino into your own development environment? Follow these st
 
 ### 1. Prerequisites
 
-* **Node.js** (v16.9.0 or higher)
+* **Node.js** (v18.0.0 or higher)
 * A Registered Bot Token from the [Discord Developer Portal](https://discord.com/developers/applications)
 
 ### 2. Quick Start
@@ -90,7 +98,7 @@ Clone the repository and install the required dependencies:
 ```bash
 git clone https://github.com/deeandrea/yappuchino.git
 cd yappuchino
-npm install
+npm install express dotenv
 ```
 
 Create a `.env` file in the root directory and add your bot token:
