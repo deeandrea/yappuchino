@@ -155,7 +155,6 @@ client.on(Events.MessageCreate, async (message) => {
                 )
                 .setFooter({ text: 'pwovided with wuv by uwur dev 💕' });
 
-            // ✨ DEVELOPER ONLY CATEGORY ✨
             if (message.author.id === DEVELOPER_ID) {
                 helpEmbed.addFields({ 
                     name: `👑 __**Devewopew Secwet Cmds**__ 👑`, 
@@ -430,7 +429,7 @@ client.on(Events.MessageCreate, async (message) => {
     }
 });
 
-// Process error handlers so the bot doesn't crash from network timeouts!
+
 process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error);
 });
