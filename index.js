@@ -24,7 +24,7 @@ const PREFIX = 'bp.';
 const domainMap = {
     'twitter.com': 'fxtwitter.com',
     'x.com': 'fxtwitter.com',
-    'tiktok.com': 'kktiktok.com',
+    'tiktok.com': 'kktiktok.com', // Note: If kktiktok ever goes down, 'vxtiktok.com' is a popular alternative!
     'vm.tiktok.com': 'kktiktok.com',
     'vt.tiktok.com': 'kktiktok.com'
 };
@@ -201,11 +201,12 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         if (command === 'purge' || command === 'cwean') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
+            // ✨ OPTIMIZED: Added optional chaining (?.) so it doesn't crash if the member is missing/uncached
+            if (!message.member?.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
                 return message.reply('n-no! u don\'t have pewmission to cwean messages! (｡•́︿•̀｡) 🛑').catch(() => {});
             }
             
-            if (!message.guild.members.me.permissionsIn(message.channel).has(PermissionsBitField.Flags.ManageMessages)) {
+            if (!message.guild.members.me?.permissionsIn(message.channel).has(PermissionsBitField.Flags.ManageMessages)) {
                 return message.reply('i-i don\'t have pewmissions to cwean messages hewe... (,,>﹏<,,) pwease give me `Manage Messages`!').catch(() => {});
             }
 
@@ -257,7 +258,6 @@ client.on(Events.MessageCreate, async (message) => {
     }
 
     const animeMatches = [...message.content.matchAll(/{([^}]+)}/g)];
-    
     const mangaMatches = [...message.content.matchAll(/<([^>]+)>/g)]
         .filter(m => !m[1].startsWith('http') && !m[1].startsWith(':') && !m[1].startsWith('a:') && !m[1].startsWith('@') && !m[1].startsWith('#') && !m[1].startsWith('&'));
 
@@ -289,58 +289,52 @@ client.on(Events.MessageCreate, async (message) => {
                     .setDescription(`**Genres:** *${media.genres.join(', ')}*\n\n${cleanDesc}`)
                     .setFooter({ text: `${formatStr} • ${statusStr}`, iconURL: 'https://anilist.co/img/logo_al.png' });
 
-                await message.channel.send({ embeds: [mediaEmbed] });
+                await message.channel.send({ embeds: [mediaEmbed] }).catch(() => {});
             } catch (err) {
             }
         }
     }
 
-    const matches = message.content.match(urlRegex);
+    // ✨ OPTIMIZED: matchAll provides exact indexes, fixing the critical `indexOf` duplicate URL bug!
+    const urlMatches = [...message.content.matchAll(urlRegex)];
 
-    if (!matches && message.mentions.has(client.user)) {
+    if (urlMatches.length === 0 && message.mentions.has(client.user)) {
         const textWithoutPing = message.content.replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '').trim();
         
         if (textWithoutPing.length > 0) {
             const eightBallReplies = [
-                "yes!! definitely!! (๑>ᴗ<๑) ✨",
-                "it is cewtain!! 🐾",
-                "without a doubt, bestie!! 💖",
-                "mhm! signs point to yes! ( ˶ˆ꒳ˆ˵ )",
-                "my widdle cwystal ball says yes! 🔮✨",
-                "hmm.. ask again watew.. im eepy (∪｡∪)｡｡｡zzZ",
-                "i-i can't tell wight now.. sowwy!! 🥺",
-                "concentwate and ask again! ( •̀ᴗ•́ )و ̑̑",
-                "n-no.. i don't think so.. (｡•́︿•̀｡)",
-                "my souwces say no.. *hides* 🙈",
-                "vewy doubtfuw.. 🛑",
-                "nyo way!! (・`ω´・)"
+                "yes!! definitely!! (๑>ᴗ<๑) ✨", "it is cewtain!! 🐾", "without a doubt, bestie!! 💖",
+                "mhm! signs point to yes! ( ˶ˆ꒳ˆ˵ )", "my widdle cwystal ball says yes! 🔮✨",
+                "hmm.. ask again watew.. im eepy (∪｡∪)｡｡｡zzZ", "i-i can't tell wight now.. sowwy!! 🥺",
+                "concentwate and ask again! ( •̀ᴗ•́ )و ̑̑", "n-no.. i don't think so.. (｡•́︿•̀｡)",
+                "my souwces say no.. *hides* 🙈", "vewy doubtfuw.. 🛑", "nyo way!! (・`ω´・)"
             ];
             const answer = eightBallReplies[Math.floor(Math.random() * eightBallReplies.length)];
             return message.reply(`${answer}`).catch(() => {});
         } else {
             const adorableReplies = [
-                "hewwo?? did u need me? (・`ω´・)",
-                "weady for duty!! 🛠️( •̀ᴗ•́ )و ̑̑",
-                "uwu? u askin fow an 8ball weading? 🔮✨",
-                "*nuzzles u* 🐾"
+                "hewwo?? did u need me? (・`ω´・)", "weady for duty!! 🛠️( •̀ᴗ•́ )و ̑̑",
+                "uwu? u askin fow an 8ball weading? 🔮✨", "*nuzzles u* 🐾"
             ];
             return message.reply(adorableReplies[Math.floor(Math.random() * adorableReplies.length)]).catch(() => {});
         }
     }
 
-    if (!matches) return;
+    if (urlMatches.length === 0) return;
 
     let fixedData = [];
     let modified = false;
     let originalText = message.content;
 
-    for (const match of matches) {
+    for (const matchObj of urlMatches) {
         try {
-            const urlIndex = message.content.indexOf(match);
-            const isEscaped = urlIndex > 0 && message.content[urlIndex - 1] === '<' && message.content[urlIndex + match.length] === '>';
+            const fullMatch = matchObj[0];
+            const urlIndex = matchObj.index; // ✨ Exact position, bypassing the old indexOf bug
+            
+            const isEscaped = urlIndex > 0 && message.content[urlIndex - 1] === '<' && message.content[urlIndex + fullMatch.length] === '>';
             if (isEscaped) continue;
 
-            const cleanMatch = match.replace(/[.,;!)\]'"<>]+$/, '');
+            const cleanMatch = fullMatch.replace(/[.,;!)\]'"<>]+$/, '');
             const url = new URL(cleanMatch);
             const hostname = url.hostname.replace(/^www\./, '');
 
@@ -367,19 +361,29 @@ client.on(Events.MessageCreate, async (message) => {
             const isReply = message.reference !== null;
             let needsPerms = false;
             let messageDeleted = false;
+            
+            // Safe permission check
+            const botPerms = message.guild.members.me?.permissionsIn(message.channel);
 
             if (!hasAttachments && !isReply) {
-                const botPerms = message.guild.members.me.permissionsIn(message.channel);
-                if (botPerms.has(PermissionsBitField.Flags.ManageMessages)) {
+                if (botPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
                     try {
                         await message.delete();
                         messageDeleted = true;
                     } catch (err) {
-                        needsPerms = true;
+                        // Check if the error is actually missing permissions (50013)
+                        if (err.code === 50013) needsPerms = true;
                     }
                 } else {
                     needsPerms = true;
                 }
+            }
+
+            // ✨ OPTIMIZED: If we kept the original message for context, suppress its default embeds so the chat isn't cluttered!
+            if (!messageDeleted && botPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
+                try {
+                    await message.suppressEmbeds(true);
+                } catch (err) {}
             }
 
             originalText = originalText.replace(/\s+/g, ' ').trim();
@@ -415,12 +419,15 @@ client.on(Events.MessageCreate, async (message) => {
                 warningText = `*(psst.. i didn't dewete ur message so ur attachments/weply wouldn't get wost! 🌸)*`;
             }
 
+            const proxyLinks = fixedData.map(data => `[₊˚⊹✧](${data.proxyUrl})`).join('\n');
+
+            // Send the embed and warnings first
             await message.channel.send({ 
                 content: warningText.length > 0 ? warningText : null,
                 embeds: [cuteEmbed] 
             });
 
-            const proxyLinks = fixedData.map(data => `[₊˚⊹✧](${data.proxyUrl})`).join('\n');
+            // Send the proxy links in a SEPARATE message so Discord unfurls the videos!
             await message.channel.send({ content: proxyLinks });
 
         } catch (error) {
@@ -428,7 +435,6 @@ client.on(Events.MessageCreate, async (message) => {
         }
     }
 });
-
 
 process.on('unhandledRejection', (error) => {
     console.error('Unhandled promise rejection:', error);
