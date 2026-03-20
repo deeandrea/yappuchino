@@ -1,0 +1,43 @@
+name: Render Deploy + GitHub Status
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub Deployment
+        id: deploy
+        uses: bobheadxi/deployments@v1
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+
+      - name: Trigger Render Deploy
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+      - name: Mark Deployment Success
+        if: success()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          status: success
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+          deployment_id: ${{ steps.deploy.outputs.deployment_id }}
+
+      - name: Mark Deployment Failed
+        if: failure()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          status: failure
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: production
+          deployment_id: ${{ steps.deploy.outputs.deployment_id }}
