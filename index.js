@@ -77,8 +77,26 @@ async function fetchAniList(search, type, isAdult) {
     });
 
     const data = await response.json();
-    if (data.errors) throw new Error('Media not found');
+    if (data.errors || !data.data || !data.data.Media) throw new Error('Media not found');
     return data.data.Media;
+}
+
+function formatUptime(ms) {
+    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+    const daysms = ms % (24 * 60 * 60 * 1000);
+    const hours = Math.floor(daysms / (60 * 60 * 1000));
+    const hoursms = ms % (60 * 60 * 1000);
+    const minutes = Math.floor(hoursms / (60 * 1000));
+    const minutesms = ms % (60 * 1000);
+    const seconds = Math.floor(minutesms / 1000);
+    
+    let timeStr = '';
+    if (days > 0) timeStr += `${days}d `;
+    if (hours > 0) timeStr += `${hours}h `;
+    if (minutes > 0) timeStr += `${minutes}m `;
+    timeStr += `${seconds}s`;
+    
+    return timeStr.trim();
 }
 
 const cuteStatuses = [
@@ -127,14 +145,49 @@ client.on(Events.MessageCreate, async (message) => {
                 .setDescription('i mostly just sit hewe and fix ur messy social media links automatically! but u can also do these:')
                 .addFields(
                     { name: `🛠️ ${PREFIX}help / ${PREFIX}cmds`, value: 'shows this cute widdle menu! 🌸' },
-                    { name: `🧹 ${PREFIX}cwean <number>`, value: 'bulk deletes messages (requires `Manage Messages` pewm) ✨' },
+                    { name: `🖼️ ${PREFIX}avatar / ${PREFIX}av <@user>`, value: 'shows someone\'s pwofile pictuwe! 📸' },
+                    { name: `🏡 ${PREFIX}serverinfo / ${PREFIX}server`, value: 'shows cute info about this sewvew! ✨' },
+                    { name: `🧹 ${PREFIX}cwean / ${PREFIX}purge <number>`, value: 'bulk deletes messages (requires `Manage Messages` pewm) ✨' },
                     { name: `🫂 ${PREFIX}hug <@user>`, value: 'give someone a big warm hug! ( ˶ˆ꒳ˆ˵ )' },
                     { name: `🐾 ${PREFIX}pat <@user>`, value: 'give someone soft headpats! ૮ ˶ᵔ ᵕ ᵔ˶ ა' },
+                    { name: `🔮 @Bot <question>`, value: 'ping me with a question fow a magic 8-ball answew! ✨' },
                     { name: `📖 {anime} / <manga>`, value: 'type an anime in {} or manga in <> and i wiww find it fow u! ✨' }
                 )
                 .setFooter({ text: 'pwovided with wuv by uwur dev 💕' });
 
+            // ✨ DEVELOPER ONLY CATEGORY ✨
+            if (message.author.id === DEVELOPER_ID) {
+                helpEmbed.addFields({ 
+                    name: `👑 __**Devewopew Secwet Cmds**__ 👑`, 
+                    value: `**${PREFIX}restart** - nite nite bot (restarts)\n**${PREFIX}stats / ${PREFIX}info** - shows my ping, uptime, and othew newdy stuff! 🏓✨` 
+                });
+            }
+
             return message.reply({ embeds: [helpEmbed] }).catch(() => {});
+        }
+
+        if (command === 'avatar' || command === 'av') {
+            const target = message.mentions.users.first() || message.author;
+            const avEmbed = new EmbedBuilder()
+                .setColor('#FFB6C1')
+                .setTitle(`🎀 ${target.username}'s pwofile pictuwe! 🎀`)
+                .setImage(target.displayAvatarURL({ dynamic: true, size: 512 }))
+                .setFooter({ text: 'so pwetty! (๑>ᴗ<๑)' });
+            return message.reply({ embeds: [avEmbed] }).catch(() => {});
+        }
+
+        if (command === 'serverinfo' || command === 'server') {
+            const { guild } = message;
+            const serverEmbed = new EmbedBuilder()
+                .setColor('#FFB6C1')
+                .setAuthor({ name: guild.name, iconURL: guild.iconURL({ dynamic: true }) })
+                .addFields(
+                    { name: '👑 **Ownew**', value: `<@${guild.ownerId}>`, inline: true },
+                    { name: '👥 **Membews**', value: `${guild.memberCount} cuties`, inline: true },
+                    { name: '📅 **Cweated**', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true }
+                )
+                .setFooter({ text: 'such a cozy home! 🏡💕' });
+            return message.reply({ embeds: [serverEmbed] }).catch(() => {});
         }
 
         if (command === 'hug' || command === 'pat') {
@@ -151,6 +204,10 @@ client.on(Events.MessageCreate, async (message) => {
         if (command === 'purge' || command === 'cwean') {
             if (!message.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
                 return message.reply('n-no! u don\'t have pewmission to cwean messages! (｡•́︿•̀｡) 🛑').catch(() => {});
+            }
+            
+            if (!message.guild.members.me.permissionsIn(message.channel).has(PermissionsBitField.Flags.ManageMessages)) {
+                return message.reply('i-i don\'t have pewmissions to cwean messages hewe... (,,>﹏<,,) pwease give me `Manage Messages`!').catch(() => {});
             }
 
             const amount = parseInt(args[0]);
@@ -170,31 +227,47 @@ client.on(Events.MessageCreate, async (message) => {
         }
 
         if (message.author.id === DEVELOPER_ID) {
-            if (command === 'ping') return message.reply('hewwo!! p-pong! (๑>ᴗ<๑) 🏓').catch(() => {});
-            if (command === 'status') {
-                const newStatus = args.join(' ');
-                if (!newStatus) return message.reply('pwease pwovide a status message! (｡•́︿•̀｡) 🎀').catch(() => {});
-                clearInterval(presenceInterval); 
-                client.user.setActivity(newStatus, { type: ActivityType.Custom });
-                return message.reply(`uwu.. status changed to: **${newStatus}** (´｡• ᵕ •｡\`) ✨`).catch(() => {});
-            }
             if (command === 'restart') {
                 await message.reply('n-nite nite.. westarting now! (∪｡∪)｡｡｡zzZ 👋🌸').catch(() => {});
                 process.exit(0);
+            }
+            if (command === 'stats' || command === 'info') {
+                const uptimeStr = formatUptime(client.uptime);
+                const ping = client.ws.ping;
+                const ram = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+                const servers = client.guilds.cache.size;
+
+                const statsEmbed = new EmbedBuilder()
+                    .setColor('#FFB6C1')
+                    .setAuthor({ 
+                        name: `my widdle stats! 📊✨`, 
+                        iconURL: client.user.displayAvatarURL() 
+                    })
+                    .addFields(
+                        { name: '⏳ **Awake Fow**', value: `\`${uptimeStr}\``, inline: true },
+                        { name: '🏓 **Ping**', value: `\`${ping}ms\``, inline: true },
+                        { name: '🧠 **Memowy**', value: `\`${ram} MB\``, inline: true },
+                        { name: '🏡 **Sewvews**', value: `\`${servers}\` cozy homes`, inline: true }
+                    )
+                    .setFooter({ text: 'wowking hawd to fix ur winks! 💕' });
+
+                return message.reply({ embeds: [statsEmbed] }).catch(() => {});
             }
         }
         return;
     }
 
     const animeMatches = [...message.content.matchAll(/{([^}]+)}/g)];
-    const mangaMatches = [...message.content.matchAll(/<([^>]+)>/g)].filter(m => !m[1].startsWith('http') && !m[1].startsWith(':') && !m[1].startsWith('a:'));
+    
+    const mangaMatches = [...message.content.matchAll(/<([^>]+)>/g)]
+        .filter(m => !m[1].startsWith('http') && !m[1].startsWith(':') && !m[1].startsWith('a:') && !m[1].startsWith('@') && !m[1].startsWith('#') && !m[1].startsWith('&'));
 
     const searchRequests = [];
     animeMatches.forEach(m => searchRequests.push({ name: m[1], type: 'ANIME' }));
     mangaMatches.forEach(m => searchRequests.push({ name: m[1], type: 'MANGA' }));
 
     if (searchRequests.length > 0) {
-        await message.channel.sendTyping();
+        await message.channel.sendTyping().catch(() => {});
         const isAdult = message.channel.nsfw;
 
         for (const req of searchRequests.slice(0, 3)) {
@@ -227,19 +300,29 @@ client.on(Events.MessageCreate, async (message) => {
 
     if (!matches && message.mentions.has(client.user)) {
         const textWithoutPing = message.content.replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '').trim();
+        
         if (textWithoutPing.length > 0) {
-            const textReplies = [
-                "h-hewwo!! i see u talking to me, but i only know how to fix winks!! 🥺✨",
-                "uwu? i'm just a silly widdle bot.. i don't understand words very well (,,>﹏<,,)",
-                "sowwy!! i'm not a chattin bot! i'm a widdle embed fixer! 🛠️🐾",
-                "beep boop! i mean- nyanyanya! i-i can't wead that! (｡•́︿•̀｡)"
+            const eightBallReplies = [
+                "yes!! definitely!! (๑>ᴗ<๑) ✨",
+                "it is cewtain!! 🐾",
+                "without a doubt, bestie!! 💖",
+                "mhm! signs point to yes! ( ˶ˆ꒳ˆ˵ )",
+                "my widdle cwystal ball says yes! 🔮✨",
+                "hmm.. ask again watew.. im eepy (∪｡∪)｡｡｡zzZ",
+                "i-i can't tell wight now.. sowwy!! 🥺",
+                "concentwate and ask again! ( •̀ᴗ•́ )و ̑̑",
+                "n-no.. i don't think so.. (｡•́︿•̀｡)",
+                "my souwces say no.. *hides* 🙈",
+                "vewy doubtfuw.. 🛑",
+                "nyo way!! (・`ω´・)"
             ];
-            return message.reply(textReplies[Math.floor(Math.random() * textReplies.length)]).catch(() => {});
+            const answer = eightBallReplies[Math.floor(Math.random() * eightBallReplies.length)];
+            return message.reply(`> *${textWithoutPing}*\n\n${answer}`).catch(() => {});
         } else {
             const adorableReplies = [
                 "hewwo?? did u need me? (・`ω´・)",
                 "weady for duty!! 🛠️( •̀ᴗ•́ )و ̑̑",
-                "uwu?",
+                "uwu? u askin fow an 8ball weading? 🔮✨",
                 "*nuzzles u* 🐾"
             ];
             return message.reply(adorableReplies[Math.floor(Math.random() * adorableReplies.length)]).catch(() => {});
@@ -287,10 +370,15 @@ client.on(Events.MessageCreate, async (message) => {
             let messageDeleted = false;
 
             if (!hasAttachments && !isReply) {
-                try {
-                    await message.delete();
-                    messageDeleted = true;
-                } catch (err) {
+                const botPerms = message.guild.members.me.permissionsIn(message.channel);
+                if (botPerms.has(PermissionsBitField.Flags.ManageMessages)) {
+                    try {
+                        await message.delete();
+                        messageDeleted = true;
+                    } catch (err) {
+                        needsPerms = true;
+                    }
+                } else {
                     needsPerms = true;
                 }
             }
@@ -340,6 +428,15 @@ client.on(Events.MessageCreate, async (message) => {
             console.error('(｡•́︿•̀｡) [Ewwow] s-something went wwong sendin the message:', error);
         }
     }
+});
+
+// Process error handlers so the bot doesn't crash from network timeouts!
+process.on('unhandledRejection', (error) => {
+    console.error('Unhandled promise rejection:', error);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error);
 });
 
 client.login(process.env.DISCORD_TOKEN);

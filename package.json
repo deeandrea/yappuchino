@@ -1,14 +1,25 @@
 {
-  "name": "wushishi",
+  "name": "kyut-kat",
   "version": "1.0.0",
-  "description": "just a cutie bot",
+  "description": "A super cute Discord bot for automatically fixing messy social media links!",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
+  "keywords": [
+    "discord",
+    "bot",
+    "social-media",
+    "fxtwitter",
+    "kktiktok",
+    "cute"
+  ],
+  "author": "wen",
+  "license": "ISC",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.6.1",
-    "express": "^5.2.1"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
   }
 }
