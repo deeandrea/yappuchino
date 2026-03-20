@@ -8,6 +8,7 @@
 
 <img src="https://img.shields.io/badge/Node.js-16.x-FFB6C1?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
 <img src="https://img.shields.io/badge/Discord.js-v14-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
+<img src="https://img.shields.io/badge/Status-Active-FF91A4?style=for-the-badge" alt="Status">
 <img src="https://img.shields.io/badge/License-ISC-FF69B4?style=for-the-badge" alt="License">
 
 </div>
@@ -19,6 +20,16 @@
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
+## 📑 Table of Contents
+* [✨ Why yappuchino?](#why-yappuchino)
+* [⌨️ The Command Menu](#command-menu)
+* [🚀 Installation & Setup](#setup)
+* [🔒 Required Intents & Permissions](#permissions)
+* [🛠️ Troubleshooting](#troubleshooting)
+
+<div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
+
+<a name="why-yappuchino"></a>
 ## ✨ Why yappuchino?
 
 💖 **Seamless Auto-Fixing** Paste a `twitter.com`, `x.com`, or `tiktok.com` link. yappuchino instantly swaps it to a working proxy (`fxtwitter` / `kktiktok`), deletes the ugly original message, and credits you perfectly. It even detects if you replied to someone or attached a file, smartly leaving those messages alone!
@@ -29,6 +40,7 @@
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
+<a name="command-menu"></a>
 ## ⌨️ The Command Menu
 
 Prefix your commands with `bp.` to interact with yappuchino!
@@ -61,6 +73,7 @@ Prefix your commands with `bp.` to interact with yappuchino!
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
+<a name="setup"></a>
 ## 🚀 Installation & Setup
 
 Want to invite yappuchino into your own development environment? Follow these steps:
@@ -75,7 +88,7 @@ Want to invite yappuchino into your own development environment? Follow these st
 Clone the repository and install the required dependencies:
 
 ```bash
-git clone [https://github.com/deeandrea/yappuchino.git](https://github.com/deeandrea/yappuchino.git)
+git clone https://github.com/deeandrea/yappuchino.git
 cd yappuchino
 npm install
 ```
@@ -99,15 +112,21 @@ npm start
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
+<a name="permissions"></a>
 ## 🔒 Required Intents & Permissions
 
 To ensure yappuchino works flawlessly, enable the following in your Discord Developer Portal:
 
-* **Privileged Intents:** `Message Content Intent` (CRITICAL)
-* **Bot Permissions:** `Read Messages`, `Send Messages`, `Manage Messages` (Crucial for auto-fixing links), `Embed Links`, `Attach Files`, `Read Message History`, `Add Reactions`.
+* **Privileged Intents:** `Message Content Intent` (CRITICAL 🚨)
+* **Bot Permissions:** * `Read Messages` & `Send Messages`
+  * `Manage Messages` *(Crucial for auto-fixing links)*
+  * `Embed Links` & `Attach Files`
+  * `Read Message History`
+  * `Add Reactions`
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
+<a name="troubleshooting"></a>
 ## 🛠️ Troubleshooting
 
 <details>
@@ -126,6 +145,13 @@ Don't panic! This just means the Discord API or AniList API took too long to res
 </details>
 
 <br>
+
 <div align="center">
-  <sub>Made with 💖 by wenwen</sub>
+  <h3>🤝 Contributing</h3>
+  <p>Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change. Let's make Discord a cuter place together!</p>
+
+  <a href="https://ko-fi.com/wenwen" target="_blank"><img src="https://img.shields.io/badge/Buy_Me_a_Yappuchino-%E2%98%95-FFB6C1?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me A Coffee"></a>
+
+  <br><br>
+  <sub>Made with 💖 by <a href="https://github.com/deeandrea">wenwen</a></sub>
 </div>
