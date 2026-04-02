@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A super cute Discord bot for automatically fixing messy social media links!",
   "main": "index.js",
+  "engines": {
+  "node": "18.x"
+},
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js"
