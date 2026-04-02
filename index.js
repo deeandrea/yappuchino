@@ -137,21 +137,35 @@ function formatUptime(ms) {
 }
 
 const cuteStatuses = [
-    { text: 'nyan nyan 🐾', type: ActivityType.Playing },
-    { text: 'f-fixing uwur winks~ ✨', type: ActivityType.Watching },
-    { text: 'lo-fi beats (˘⌣˘)🎵', type: ActivityType.Listening },
-    { text: 'w-wooking at embeds (owo)', type: ActivityType.Watching },
-    { text: 'everything is oki doki 🌸', type: ActivityType.Custom },
-    { text: 'with yarn balls 🧶', type: ActivityType.Playing },
-    { text: 'headpats pls (⁄ ⁄•⁄ω⁄•⁄ ⁄)', type: ActivityType.Custom },
-    { text: 'stargazing 🌌✨', type: ActivityType.Watching },
-    { text: 'bp.help fow cmds! 🎀', type: ActivityType.Playing }
+  { text: 'nyan nyan 🐾', type: ActivityType.Playing },
+  { text: 'f-fixing uwur winks~ ✨', type: ActivityType.Watching },
+  { text: 'lo-fi beats (˘⌣˘)🎵', type: ActivityType.Listening },
+  { text: 'w-wooking at embeds (owo)', type: ActivityType.Watching },
+  { text: 'everything is oki doki 🌸', type: ActivityType.Playing }, // was Custom, changed to Playing
+  { text: 'with yarn balls 🧶', type: ActivityType.Playing },        // was Custom, changed to Playing
+  { text: 'headpats pls (⁄ ⁄•⁄ω⁄•⁄ ⁄)', type: ActivityType.Playing }, // was Custom, changed to Playing
+  { text: 'stargazing 🌌✨', type: ActivityType.Watching },
+  { text: 'bp.help fow cmds! 🎀', type: ActivityType.Playing }
 ];
 
 function updatePresence() {
-    const status = cuteStatuses[Math.floor(Math.random() * cuteStatuses.length)];
-    client.user.setPresence({ activities: [{ name: status.text, type: status.type }], status: 'online' });
+  const status = cuteStatuses[Math.floor(Math.random() * cuteStatuses.length)];
+  try {
+    client.user.setPresence({
+      activities: [{ name: status.text, type: status.type }],
+      status: 'online'
+    });
+  } catch (err) {
+    console.error("❌ Failed to update presence:", err);
+  }
 }
+
+// start presence updates only after bot is ready
+client.once(Events.ClientReady, () => {
+  console.log(`✨ yappuchino is online as ${client.user.tag} ✨`);
+  updatePresence(); // initial update
+  setInterval(updatePresence, 30000);
+});
 
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
@@ -285,7 +299,7 @@ client.on(Events.MessageCreate, async (message) => {
                         { name: '⏳ **Awake Fow**', value: `\`${uptimeStr}\``, inline: true },
                         { name: '🏓 **Ping**', value: `\`${client.ws.ping}ms\``, inline: true },
                         { name: '🧠 **Memowy**', value: `\`${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB\``, inline: true },
-                        { name: '🏡 **Sewvews**', value: `\`${client.guilds.cache.size}\` cozy homes`, inline: true }
+                        { name: '🏡 **Sewvews**', value: `\`${client.guilds.fetch().then(g => g.size)}\` cozy homes`, inline: true }
                     ).setFooter({ text: 'wowking hawd to fix ur winks! 💕' });
                 return message.reply({ embeds: [statsEmbed] }).catch(() => {});
             }
