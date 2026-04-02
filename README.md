@@ -2,7 +2,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=FFB6C1,FF91A4&height=250&section=header&text=yappuchino&fontSize=80&fontColor=ffffff&fontAlignY=38&desc=fixing%20messy%20links,%20one%20embed%20at%20a%20time&descAlignY=60&descSize=22&animation=twinkling" alt="yappuchino Banner">
 
-*The elegant, effortless solution to messy social media links in Discord.*
+*The elegant, effortless solution to messy social media links, now has a cutie AI integration within!*
 
 <div align="center">
 
@@ -12,9 +12,11 @@
 <a href="https://discord.js.org/">
   <img src="https://img.shields.io/badge/Discord.js-v14-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
 </a>
-<img src="https://img.shields.io/badge/Status-Active-FF91A4?style=for-the-badge" alt="Status">
-<a href="https://opensource.org/licenses/ISC">
-  <img src="https://img.shields.io/badge/License-ISC-FF69B4?style=for-the-badge" alt="License">
+<a href="https://ai.google.dev/">
+  <img src="https://img.shields.io/badge/Powered%20by-Gemini%20AI-blue?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini AI">
+</a>
+<a href="https://www.mongodb.com/">
+  <img src="https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
 </a>
 
 </div>
@@ -23,99 +25,95 @@
 
 <br>
 
-> **Discord wasn't built to handle every TikTok or Twitter video.**
-> That's why yappuchino actively monitors your chat, instantly deleting broken links and replacing them with beautifully embedded, fully-functional videos—all while keeping your name and avatar attached.
+> **Discord embeds are hit-or-miss. yappuchino never misses.**
+> She monitors your chat, swaps broken TikTok/Twitter links with working proxies, and now features a persistent AI chat powered by Google Gemini that remembers your conversations across restarts.
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
 ## 📑 Table of Contents
-* [✨ Why yappuchino?](#why-yappuchino)
+* [✨ Key Features](#features)
 * [⌨️ The Command Menu](#command-menu)
 * [🚀 Installation & Setup](#setup)
-* [🔒 Required Intents & Permissions](#permissions)
+* [🔒 Required Intents](#permissions)
 * [🛠️ Troubleshooting](#troubleshooting)
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
-<a name="why-yappuchino"></a>
-## ✨ Why yappuchino?
+<a name="features"></a>
+## ✨ Key Features
 
-💖 **Seamless Auto-Fixing** Paste a `twitter.com`, `x.com`, or `tiktok.com` link. yappuchino instantly swaps it to a working proxy (`fxtwitter` / `kktiktok`), deletes the ugly original message, and credits you perfectly. It even detects if you replied to someone or attached a file, smartly leaving those messages alone!
+💖 **Seamless Auto-Fixing**
+Paste a `twitter.com`, `x.com`, or `tiktok.com` link. yappuchino instantly swaps it to a working proxy (`fxtwitter` / `kktiktok`), deletes the original, and keeps the chat clean while crediting the sender.
 
-📖 **Integrated AniList Search** Looking for a new show? Type `{Jujutsu Kaisen}` for anime or `<Chainsaw Man>` for manga. Get high-res cover art, descriptions, and statuses instantly.
+🧠 **Persistent AI Memory**
+Powered by **Gemini 1.5 Flash** and **MongoDB**. yappuchino remembers the last 40 messages in a channel even if the bot restarts. She actually knows who she's talking to!
 
-🔮 **Interactive & Alive** Ping `@yappuchino` with a question for a Magic 8-ball reading, or use built-in social commands to hug and pat your server members.
+📖 **Integrated AniList Search**
+Looking for a new show? Type `{Jujutsu Kaisen}` for anime or `<Chainsaw Man>` for manga to get high-res art and descriptions instantly.
+
+🛡️ **Smart Concurrency**
+Built-in locks and cooldowns ensure the AI doesn't crash during busy group chats, keeping responses snappy and stable.
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
 <a name="command-menu"></a>
 ## ⌨️ The Command Menu
 
-Prefix your commands with `bp.` to interact with yappuchino!
+### 🌸 AI & Social
 
-### 🌸 Social & Utility
-
-| Command | Aliases | Description | 
-| :--- | :--- | :--- | 
-| `bp.help` | `bp.cmds` | Opens the interactive help menu. | 
-| `bp.avatar` | `bp.av` | Grabs a high-res version of someone's profile picture. | 
-| `bp.serverinfo` | `bp.server` | Displays a neat overview of the current server. | 
-| `bp.hug <@user>` | - | Wrap a friend in a big warm hug! | 
-| `bp.pat <@user>` | - | Give someone soft headpats. | 
+| Command | Description |
+| :--- | :--- |
+| `bp.enablechat` | Authorizes yappuchino to participate in the current channel. |
+| `bp.disablechat` | Silences the AI and clears the local channel memory. |
+| `bp.hug <@user>` | Wrap a friend in a big warm hug! |
+| `bp.pat <@user>` | Give someone soft headpats. |
+| `bp.avatar` | Grabs a high-res version of someone's pfp. |
 
 ### 🔎 Search & Magic
 
 | Trigger | Description | 
 | :--- | :--- | 
-| `{Anime Title}` | Searches the AniList database for an anime (No prefix needed!). | 
-| `<Manga Title>` | Searches the AniList database for a manga (No prefix needed!). | 
-| `@yappuchino <Query>` | Ask a question for a Magic 8-Ball response! | 
+| `{Anime Title}` | Instant AniList anime search. | 
+| `<Manga Title>` | Instant AniList manga search. | 
+| `@yappuchino <msg>` | Quick Magic 8-Ball response (if AI chat is disabled). | 
 
 ### 🛠️ Moderation & Developer
 
-| Command | Aliases | Description | 
-| :--- | :--- | :--- | 
-| `bp.cwean` | `bp.purge` | Bulk deletes messages *(Requires Manage Messages permission)*. | 
-| `bp.stats` | `bp.info` | **(Dev Only)** Shows bot uptime, ping, and memory usage. | 
-| `bp.restart` | - | **(Dev Only)** Safely shuts the bot down to restart. | 
+| Command | Description | 
+| :--- | :--- | 
+| `bp.cwean <num>` | Bulk deletes messages (Requires `Manage Messages`). | 
+| `bp.stats` | **(Dev Only)** Shows ping, uptime, and memory usage. | 
+| `bp.restart` | **(Dev Only)** Safely shuts down the bot process. | 
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
 
 <a name="setup"></a>
 ## 🚀 Installation & Setup
 
-Want to invite yappuchino into your own development environment? Follow these steps:
-
 ### 1. Prerequisites
-
-* **Node.js** (v18.0.0 or higher)
-* A Registered Bot Token from the [Discord Developer Portal](https://discord.com/developers/applications)
+* **Node.js** (v18+)
+* **MongoDB Atlas** account (or local instance)
+* **Google AI Studio** API Key (Gemini)
 
 ### 2. Quick Start
-
-Clone the repository and install the required dependencies:
-
 ```bash
-git clone https://github.com/deeandrea/yappuchino.git
+git clone [https://github.com/deeandrea/yappuchino.git](https://github.com/deeandrea/yappuchino.git)
 cd yappuchino
-npm install express dotenv
+npm install express dotenv discord.js @google/generative-ai mongodb
 ```
 
-Create a `.env` file in the root directory and add your bot token:
-
+### 3. Environment Configuration
+Create a `.env` file in the root directory:
 ```env
-DISCORD_TOKEN=your_super_secret_bot_token_here
+DISCORD_TOKEN=your_bot_token
+GEMINI_API_KEY=your_gemini_key
+MONGO_URI=your_mongodb_connection_string
+PORT=3000
 ```
 
-Set up your Developer privileges by grabbing your Discord User ID and replacing the `DEVELOPER_ID` string in `index.js` (around line 21).
-
-### 3. Invite the Bot
-Go to the **OAuth2 > URL Generator** tab in the Developer Portal. Select the `bot` scope, check the required permissions listed below, and paste the generated URL into your browser to invite yappuchino to your server!
-
-### 4. Wake Her Up!
-
+### 4. Run the Bot
 ```bash
-npm start
+node index.js
 ```
 
 <div align="center"> ⋆ ˚｡⋆୨୧˚ ˚୨୧⋆｡˚ ⋆ </div>
@@ -123,12 +121,10 @@ npm start
 <a name="permissions"></a>
 ## 🔒 Required Intents & Permissions
 
-To ensure yappuchino works flawlessly, enable the following in your Discord Developer Portal:
-
-* **Privileged Intents:** `Message Content Intent` (CRITICAL 🚨)
-* **Bot Permissions:** * `Read Messages` & `Send Messages`
-  * `Manage Messages` *(Crucial for auto-fixing links)*
-  * `Embed Links` & `Attach Files`
+* **Privileged Intents:** `Message Content Intent` (REQUIRED)
+* **Bot Permissions:**
+  * `Manage Messages` (To clean up links)
+  * `Embed Links` 
   * `Read Message History`
   * `Add Reactions`
 
@@ -138,28 +134,23 @@ To ensure yappuchino works flawlessly, enable the following in your Discord Deve
 ## 🛠️ Troubleshooting
 
 <details>
-<summary><b>The bot isn't deleting the original message when it fixes a link!</b></summary>
-yappuchino needs the <code>Manage Messages</code> permission in the specific channel to delete other users' messages. Check her role settings!
+<summary><b>The AI isn't responding in my channel!</b></summary>
+Use <code>bp.enablechat</code> first! yappuchino respects your privacy and won't yap unless she's invited to that specific channel.
 </details>
 
 <details>
-<summary><b>The bot is online, but ignoring commands.</b></summary>
-Go to the Discord Developer Portal, navigate to the "Bot" tab, and ensure the <b>Message Content Intent</b> toggle is turned <b>ON</b>.
-</details>
-
-<details>
-<summary><b>I see an `UND_ERR_CONNECT_TIMEOUT` error in the console.</b></summary>
-Don't panic! This just means the Discord API or AniList API took too long to respond due to a brief internet hiccup. yappuchino has built-in safety nets that will catch this so she won't crash.
+<summary><b>Gemini API Error: "parts" property missing</b></summary>
+This usually happens if you have old chat history in MongoDB from a different AI provider. The latest version of yappuchino includes a migration script to fix this automatically on startup!
 </details>
 
 <br>
 
 <div align="center">
   <h3>🤝 Contributing</h3>
-  <p>Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change. Let's make Discord a cuter place together!</p>
+  <p>Let's make Discord a cuter place together! Pull requests for new features or bug fixes are always welcome.</p>
 
   <a href="https://ko-fi.com/wenwen" target="_blank"><img src="https://img.shields.io/badge/Buy_Me_a_Yappuchino-%E2%98%95-FFB6C1?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me A Coffee"></a>
 
   <br><br>
-  <sub>Made with 💖 by <a href="https://github.com/deeandrea">wenwen</a></sub>
+  <sub>Made with 💖 by <a href="https://github.com/deeandrea">wenwen</a> in Davao City</sub>
 </div>
