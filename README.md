@@ -139,8 +139,31 @@ Use <code>bp.enablechat</code> first! yappuchino respects your privacy and won't
 </details>
 
 <details>
-<summary><b>Gemini API Error: "parts" property missing</b></summary>
-This usually happens if you have old chat history in MongoDB from a different AI provider. The latest version of yappuchino includes a migration script to fix this automatically on startup!
+
+<summary><b>The bot isn't deleting the original message when it fixes a link!</b></summary>
+
+yappuchino needs the <code>Manage Messages</code> permission in the specific channel to delete other users' messages. Check her role settings!
+
+</details>
+
+
+
+<details>
+
+<summary><b>The bot is online, but ignoring commands.</b></summary>
+
+Go to the Discord Developer Portal, navigate to the "Bot" tab, and ensure the <b>Message Content Intent</b> toggle is turned <b>ON</b>.
+
+</details>
+
+
+
+<details>
+
+<summary><b>I see an `UND_ERR_CONNECT_TIMEOUT` error in the console.</b></summary>
+
+Don't panic! This just means the Discord API or AniList API took too long to respond due to a brief internet hiccup. yappuchino has built-in safety nets that will catch this so she won't crash.
+
 </details>
 
 <br>
@@ -149,8 +172,8 @@ This usually happens if you have old chat history in MongoDB from a different AI
   <h3>🤝 Contributing</h3>
   <p>Let's make Discord a cuter place together! Pull requests for new features or bug fixes are always welcome.</p>
 
-  <a href="https://ko-fi.com/wenwen" target="_blank"><img src="https://img.shields.io/badge/Buy_Me_a_Yappuchino-%E2%98%95-FFB6C1?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me A Coffee"></a>
+  <a href="https://ko-fi.com/wenwen" target="_blank"><img src="https://img.shields.io/badge/Buy_Me_a_Cappuchino-%E2%98%95-FFB6C1?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Buy Me A Coffee"></a>
 
   <br><br>
-  <sub>Made with 💖 by <a href="https://github.com/deeandrea">wenwen</a> in Davao City</sub>
+  <sub>Made with 💖 by <a href="https://github.com/deeandrea">wenwen</a></sub>
 </div>
