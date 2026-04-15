@@ -1,498 +1,304 @@
 process.on('unhandledRejection', (err) => {
-    console.error('❌ Unhandled Rejection:', err);
+  console.error('Unhandled Rejection:', err);
 });
+
 process.on('uncaughtException', (err) => {
-    console.error('❌ Uncaught Exception:', err);
+  console.error('Uncaught Exception:', err);
 });
 
 require('dotenv').config();
-const { Client, GatewayIntentBits, Events, ActivityType, PermissionsBitField, EmbedBuilder } = require('discord.js');
-const express = require("express");
-const { MongoClient } = require('mongodb');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// --- WEB SERVER ---
+const path = require('path');
+const express = require('express');
+const { Client, Events, GatewayIntentBits } = require('discord.js');
+
+const config = require('./src/config');
+const { loadCommands } = require('./src/commands/loadCommands');
+const { handleAIChat } = require('./src/features/aiChat');
+const { handleMagic8Ball } = require('./src/features/magic8Ball');
+const { handleMediaSearches } = require('./src/features/mediaSearch');
+const { handleUrlFixes } = require('./src/features/urlFixer');
+const { updatePresence } = require('./src/presence');
+const { createAIModel } = require('./src/services/ai');
+const {
+  connectDatabase,
+  loadChannelHistory,
+  persistChannelExchange,
+} = require('./src/services/database');
+const { safeReact, safeReply } = require('./src/utils/discord');
+
 const app = express();
-app.get("/", (req, res) => res.send("Bot is alive!"));
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Web server running on port ${PORT}`));
-
-// --- DISCORD CLIENT ---
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessageReactions
-    ]
-});
-
-const DEVELOPER_ID = '315770147665215488';
-const PREFIX = 'bp.';
-
-// --- MONGODB SETUP ---
-const mongoClient = new MongoClient(process.env.MONGO_URI);
-let db, channelsColl, historyColl;
-let chatEnabledChannels = new Set();
-const chatSessions = new Map();
-
-const isProcessing = new Set(); 
-const aiCooldowns = new Map();
-
-async function connectDB() {
-    try {
-        console.log("☁️  attempting to open the vault...");
-        await mongoClient.connect();
-        db = mongoClient.db('yappuchino_bot');
-        channelsColl = db.collection('enabled_channels');
-        historyColl = db.collection('chat_history');
-        console.log("✨ connected to the vault (mongodb)!! ✨");
-
-        const savedChannels = await channelsColl.find().toArray();
-        savedChannels.forEach(ch => chatEnabledChannels.add(ch.channelId));
-        console.log(`🌸 loaded ${chatEnabledChannels.size} channels fwom memowy!`);
-    } catch (err) {
-        console.error("aww, mongo broke: ", err);
-    }
-}
-
-// --- GEMINI AI SETUP ---
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const yappuchinoAI = genAI.getGenerativeModel({ 
-model: "gemini-3.1-flash-lite-preview",
-    systemInstruction: `
-    your name is yappuchino. you are a super chill, cute discord bot.
-    
-    personality & vibe:
-    - ALWAYS type in all lowercase letters only.
-    - KEEP IT SHORT. like, 1-3 sentences max. don't yap! 
-    - talk like a real person in a group chat, not a wiki page.
-    - don't list your hobbies (kittens, guitar, coding) unless someone specifically asks about them.
-    - use discord slang like "fr", "tbh", "lol", and "omg".
-    
-    speech style:
-    - replace "l" and "r" with "w" ONLY for common words (e.g., "hewwo", "vewy", "bestiew").
-    - use 1-2 kaomojis per message max so it's not messy.
-    - NEVER sound like an AI assistant.
-`,
-});
-
-// --- URL & DOMAIN STUFF ---
-const domainMap = {
-    'twitter.com': 'fxtwitter.com',
-    'x.com': 'fxtwitter.com',
-    'tiktok.com': 'kktiktok.com', 
-    'vm.tiktok.com': 'kktiktok.com',
-    'vt.tiktok.com': 'kktiktok.com'
+const runtime = {
+  httpServer: null,
+  presenceInterval: null,
+  isShuttingDown: false,
 };
 
-const escapedDomains = Object.keys(domainMap).map(d => d.replace(/\./g, '\\.')).join('|');
-const urlRegex = new RegExp(`https?:\\/\\/(www\\.)?(${escapedDomains})\\/[^\\s]+`, 'gi');
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions,
+  ],
+});
 
-function extractCreatorHandle(urlStr, hostname) {
-    try {
-        const url = new URL(urlStr);
-        const pathParts = url.pathname.split('/').filter(p => p.length > 0);
-        if (hostname.includes('tiktok')) {
-            const handle = pathParts.find(p => p.startsWith('@'));
-            return handle || 'TikTok Creator';
-        }
-        if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
-            return pathParts[0] ? `@${pathParts[0]}` : 'Twitter User';
-        }
-        return 'Creator';
-    } catch (e) { return 'Creator'; }
-}
+const state = {
+  chatEnabledChannels: new Set(),
+  chatSessions: new Map(),
+  channelProcessingLocks: new Set(),
+  aiCooldowns: new Map(),
+};
 
-// --- HELPERS ---
-async function fetchAniList(search, type, isAdult) {
-    const query = `
-    query ($search: String, $type: MediaType, $isAdult: Boolean) {
-      Media (search: $search, type: $type, isAdult: $isAdult) {
-        id title { romaji english native } description siteUrl
-        coverImage { large color } status format genres
-      }
-    }`;
-    const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ query, variables: { search, type, isAdult } })
-    });
-    const data = await response.json();
-    if (data.errors || !data.data || !data.data.Media) throw new Error('Media not found');
-    return data.data.Media;
-}
+const dbState = {
+  mongoClient: null,
+  channelsColl: null,
+  historyColl: null,
+};
 
-function formatUptime(ms) {
-    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
-    const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-    const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
-    const seconds = Math.floor((ms % (60 * 1000)) / 1000);
-    let timeStr = '';
-    if (days > 0) timeStr += `${days}d `;
-    if (hours > 0) timeStr += `${hours}h `;
-    if (minutes > 0) timeStr += `${minutes}m `;
-    timeStr += `${seconds}s`;
-    return timeStr.trim();
-}
+const yappuchinoAI = createAIModel({
+  apiKey: process.env.GEMINI_API_KEY,
+  model: config.GEMINI_MODEL,
+  systemInstruction: config.AI_SYSTEM_INSTRUCTION,
+});
 
-const cuteStatuses = [
-  { text: 'nyan nyan 🐾', type: ActivityType.Playing },
-  { text: 'f-fixing uwur winks~ ✨', type: ActivityType.Watching },
-  { text: 'lo-fi beats (˘⌣˘)🎵', type: ActivityType.Listening },
-  { text: 'w-wooking at embeds (owo)', type: ActivityType.Watching },
-  { text: 'everything is oki doki 🌸', type: ActivityType.Playing }, // was Custom, changed to Playing
-  { text: 'with yarn balls 🧶', type: ActivityType.Playing },        // was Custom, changed to Playing
-  { text: 'headpats pls (⁄ ⁄•⁄ω⁄•⁄ ⁄)', type: ActivityType.Playing }, // was Custom, changed to Playing
-  { text: 'stargazing 🌌✨', type: ActivityType.Watching },
-  { text: 'bp.help fow cmds! 🎀', type: ActivityType.Playing }
-];
+const commandRegistry = loadCommands(path.join(__dirname, 'src', 'commands'));
 
-function updatePresence() {
-  const status = cuteStatuses[Math.floor(Math.random() * cuteStatuses.length)];
-  try {
-    client.user.setPresence({
-      activities: [{ name: status.text, type: status.type }],
-      status: 'online'
-    });
-  } catch (err) {
-    console.error("❌ Failed to update presence:", err);
+app.get('/', (_req, res) => {
+  res.send('Bot is alive!');
+});
+
+function validateEnvironment() {
+  if (!process.env.DISCORD_TOKEN) {
+    throw new Error('DISCORD_TOKEN is required.');
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('GEMINI_API_KEY is missing. AI chat features will stay disabled.');
+  }
+
+  if (!process.env.MONGO_URI) {
+    console.warn(
+      'MONGO_URI is missing. Enabled chat channels and AI history will only last until restart.'
+    );
   }
 }
 
-// start presence updates only after bot is ready
-client.once(Events.ClientReady, () => {
-  console.log(`✨ yappuchino is online as ${client.user.tag} ✨`);
-  updatePresence(); // initial update
-  setInterval(updatePresence, 30000);
+async function startWebServer() {
+  runtime.httpServer = await new Promise((resolve, reject) => {
+    const server = app.listen(config.PORT, () => {
+      console.log(`Web server running on port ${config.PORT}`);
+      resolve(server);
+    });
+
+    server.once('error', reject);
+  });
+}
+
+async function connectDB() {
+  const result = await connectDatabase({
+    uri: process.env.MONGO_URI,
+    logger: console,
+  });
+
+  dbState.mongoClient = result.mongoClient;
+  dbState.channelsColl = result.channelsColl;
+  dbState.historyColl = result.historyColl;
+
+  result.chatEnabledChannelIds.forEach((channelId) => {
+    state.chatEnabledChannels.add(channelId);
+  });
+}
+
+function getRuntimeContext() {
+  return {
+    client,
+    config,
+    state,
+    commandRegistry,
+    shutdown,
+    services: {
+      aiModel: yappuchinoAI,
+      getCollections() {
+        return {
+          channelsColl: dbState.channelsColl,
+          historyColl: dbState.historyColl,
+        };
+      },
+      loadChannelHistory(channelId) {
+        return loadChannelHistory(dbState.historyColl, channelId);
+      },
+      persistChannelExchange(channelId, prompt, responseText) {
+        return persistChannelExchange(
+          dbState.historyColl,
+          channelId,
+          prompt,
+          responseText,
+          config.MAX_HISTORY_MESSAGES
+        );
+      },
+    },
+  };
+}
+
+async function shutdown(reason, exitCode = 0) {
+  if (runtime.isShuttingDown) return;
+  runtime.isShuttingDown = true;
+
+  console.log(`Shutting down (${reason})...`);
+
+  if (runtime.presenceInterval) {
+    clearInterval(runtime.presenceInterval);
+    runtime.presenceInterval = null;
+  }
+
+  if (runtime.httpServer) {
+    await Promise.race([
+      new Promise((resolve) => runtime.httpServer.close(() => resolve())),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
+    runtime.httpServer = null;
+  }
+
+  if (dbState.mongoClient) {
+    try {
+      await dbState.mongoClient.close();
+    } catch (err) {
+      console.error('Failed to close Mongo cleanly:', err);
+    }
+  }
+
+  try {
+    client.destroy();
+  } catch {}
+
+  process.exit(exitCode);
+}
+
+async function checkCommandAccess(command, message) {
+  if (command.developerOnly && message.author.id !== config.DEVELOPER_ID) {
+    await safeReply(message, 'that cmd is dev-only, sowwy!');
+    return false;
+  }
+
+  if (
+    command.requiredUserPermissions &&
+    !message.member?.permissions.has(command.requiredUserPermissions)
+  ) {
+    await safeReply(
+      message,
+      command.userPermissionError || "n-no! u don't have pewmission for that!"
+    );
+    return false;
+  }
+
+  if (
+    command.requiredBotPermissions &&
+    !message.guild.members.me
+      ?.permissionsIn(message.channel)
+      .has(command.requiredBotPermissions)
+  ) {
+    await safeReply(
+      message,
+      command.botPermissionError || "i-i don't have the pewmissions fow that..."
+    );
+    return false;
+  }
+
+  return true;
+}
+
+async function handlePrefixCommand(message) {
+  if (!message.content.toLowerCase().startsWith(config.PREFIX.toLowerCase())) {
+    return false;
+  }
+
+  const rawInput = message.content.slice(config.PREFIX.length).trim();
+  if (!rawInput) {
+    await safeReply(message, `twy \`${config.PREFIX}help\` if u need my cmds!`);
+    return true;
+  }
+
+  const args = rawInput.split(/\s+/);
+  const commandName = (args.shift() || '').toLowerCase();
+  const command = commandRegistry.get(commandName);
+
+  if (!command) {
+    await safeReply(message, `i don't know that cmd yet... twy \`${config.PREFIX}help\`!`);
+    return true;
+  }
+
+  if (!(await checkCommandAccess(command, message))) {
+    return true;
+  }
+
+  try {
+    await command.execute({
+      message,
+      args,
+      context: getRuntimeContext(),
+      command,
+    });
+  } catch (error) {
+    console.error(`Command "${command.name}" failed:`, error);
+    await safeReply(message, 's-sowwy... that cmd bonked my bwain a little');
+  }
+
+  return true;
+}
+
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`yappuchino is online as ${readyClient.user.tag}`);
+  updatePresence(readyClient);
+  runtime.presenceInterval = setInterval(
+    () => updatePresence(readyClient),
+    config.PRESENCE_INTERVAL_MS
+  );
+});
+
+client.on(Events.Error, (error) => {
+  console.error('Discord client error:', error);
 });
 
 client.on(Events.MessageCreate, async (message) => {
+  try {
     if (message.author.bot || !message.guild) return;
 
     const msgLower = message.content.toLowerCase();
-    
-    // --- 0. Reactions ---
-    if (msgLower.includes('good bot')) message.react('💖').catch(() => {});
-    else if (msgLower.includes('bad bot')) message.react('🥺').catch(() => {});
 
-    // --- 1. PREFIX COMMANDS ---
-    if (msgLower.startsWith(PREFIX)) {
-        const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-        const command = args.shift().toLowerCase();
-
-        if (command === 'help' || command === 'cmds') {
-            const helpEmbed = new EmbedBuilder()
-                .setColor('#FFB6C1')
-                .setTitle('🎀 hewwo! here are my cmds! 🎀')
-                .setDescription('i mostly just sit hewe and fix ur messy social media links automatically! but u can also do these:')
-                .addFields(
-                    { name: `🛠️ ${PREFIX}help / ${PREFIX}cmds`, value: 'shows this cute widdle menu! 🌸' },
-                    { name: `🖼️ ${PREFIX}avatar / ${PREFIX}av <@user>`, value: 'shows someone\'s pwofile pictuwe! 📸' },
-                    { name: `🏡 ${PREFIX}serverinfo / ${PREFIX}server`, value: 'shows cute info about this sewvew! ✨' },
-                    { name: `🧹 ${PREFIX}cwean / ${PREFIX}purge <number>`, value: 'bulk deletes messages (requires \`Manage Messages\` pewm) ✨' },
-                    { name: `🫂 ${PREFIX}hug <@user>`, value: 'give someone a big warm hug! ( ˶ˆ꒳ˆ˵ )' },
-                    { name: `🐾 ${PREFIX}pat <@user>`, value: 'give someone soft headpats! ૮ ˶ᵔ ᵕ ᵔ˶ ა' },
-                    { name: `🤫 ${PREFIX}enablechat / ${PREFIX}disablechat`, value: 'teww me when i can tawk and when to be quiet! ✨' },
-                    { name: `🔮 @Bot <question>`, value: 'ping me with a question fow a magic 8-ball answew! ✨' },
-                    { name: `📖 {anime} / <manga>`, value: 'type an anime in {} or manga in <> and i wiww find it fow u! ✨' }
-                )
-                .setFooter({ text: 'pwovided with wuv by uwur dev 💕' });
-
-            if (message.author.id === DEVELOPER_ID) {
-                helpEmbed.addFields({ 
-                    name: `👑 __**Devewopew Secwet Cmds**__ 👑`, 
-                    value: `**${PREFIX}restart** - nite nite bot (restarts)\n**${PREFIX}stats / ${PREFIX}info** - shows my ping, uptime, and othew newdy stuff! 🏓✨` 
-                });
-            }
-            return message.reply({ embeds: [helpEmbed] }).catch(() => {});
-        }
-
-        if (command === 'avatar' || command === 'av') {
-            const target = message.mentions.users.first() || message.author;
-            const avEmbed = new EmbedBuilder()
-                .setColor('#FFB6C1')
-                .setTitle(`🎀 ${target.username}'s pwofile pictuwe! 🎀`)
-                .setImage(target.displayAvatarURL({ dynamic: true, size: 512 }))
-                .setFooter({ text: 'so pwetty! (๑>ᴗ<๑)' });
-            return message.reply({ embeds: [avEmbed] }).catch(() => {});
-        }
-
-        if (command === 'serverinfo' || command === 'server') {
-            const { guild } = message;
-            const serverEmbed = new EmbedBuilder()
-                .setColor('#FFB6C1')
-                .setAuthor({ name: guild.name, iconURL: guild.iconURL({ dynamic: true }) })
-                .addFields(
-                    { name: '👑 **Ownew**', value: `<@${guild.ownerId}>`, inline: true },
-                    { name: '👥 **Membews**', value: `${guild.memberCount} cuties`, inline: true },
-                    { name: '📅 **Cweated**', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true }
-                )
-                .setFooter({ text: 'such a cozy home! 🏡💕' });
-            return message.reply({ embeds: [serverEmbed] }).catch(() => {});
-        }
-
-        if (command === 'hug' || command === 'pat') {
-            const target = message.mentions.users.first();
-            if (!target) return message.reply(`u gotta ping someone to ${command} them! (｡•́︿•̀｡)`).catch(() => {});
-            if (target.id === client.user.id) return message.reply(`aww.. u wanna ${command} me?? *blushes* (⁄ ⁄>⁄ ▽ ⁄<⁄ ⁄)♡`).catch(() => {});
-            if (target.id === message.author.id) return message.reply(`giving urself a ${command}?? i'll ${command} u instead! *${command}s u* 🥺💖`).catch(() => {});
-
-            const action = command === 'hug' ? 'big squishy hug' : 'soft headpats';
-            const emoji = command === 'hug' ? '🫂💖' : '🐾✨';
-            return message.channel.send(`**${target.username}**, u got a ${action} fwom **${message.author.username}**! ${emoji}`).catch(() => {});
-        }
-
-        if (command === 'purge' || command === 'cwean') {
-            if (!message.member?.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-                return message.reply('n-no! u don\'t have pewmission to cwean messages! (｡•́︿•̀｡) 🛑').catch(() => {});
-            }
-            if (!message.guild.members.me?.permissionsIn(message.channel).has(PermissionsBitField.Flags.ManageMessages)) {
-                return message.reply('i-i don\'t have pewmissions to cwean messages hewe... (,,>﹏<,,) pwease give me `Manage Messages`!').catch(() => {});
-            }
-            const amount = parseInt(args[0]);
-            if (isNaN(amount) || amount < 1 || amount > 99) {
-                return message.reply('pwease gib me a numbew between 1 and 99! (๑>ᴗ<๑) 🔢').catch(() => {});
-            }
-            try {
-                const fetchMsgs = await message.channel.messages.fetch({ limit: amount + 1 });
-                await message.channel.bulkDelete(fetchMsgs, true);
-                const reply = await message.channel.send(`yay!! i cweaned **${amount}** messages fow u! 🧹✨ ( ˶ˆ꒳ˆ˵ )`);
-                setTimeout(() => reply.delete().catch(() => {}), 5000);
-            } catch (err) {
-                return message.reply('i couldn\'t cwean the messages... maybe they awe too owd? 🥺').catch(() => {});
-            }
-            return;
-        }
-
-        if (command === 'enablechat') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) return message.reply("n-no! only mods can let me talk hewe! (｡•́︿•̀｡)");
-            if (!chatEnabledChannels.has(message.channel.id)) {
-                chatEnabledChannels.add(message.channel.id);
-                if(channelsColl) {
-                    await channelsColl.updateOne({ channelId: message.channel.id }, { $set: { channelId: message.channel.id } }, { upsert: true });
-                }
-            }
-            return message.reply("yay!! i'ww remember to tawk hewe even if i take a nap! ( ˶ˆ꒳ˆ˵ )✨");
-        }
-
-        if (command === 'disablechat') {
-            if (!message.member.permissions.has(PermissionsBitField.Flags.ManageChannels)) return message.reply("n-no! only mods can teww me to stop! (｡•́︿•̀｡)");
-            chatEnabledChannels.delete(message.channel.id);
-            chatSessions.delete(message.channel.id);
-            if(channelsColl) await channelsColl.deleteOne({ channelId: message.channel.id });
-            if(historyColl) await historyColl.deleteOne({ channelId: message.channel.id });
-            return message.reply("oki doki... i've fowgotten this place now. nite nite! (∪｡∪)｡｡｡zzZ");
-        }
-
-        if (message.author.id === DEVELOPER_ID) {
-            if (command === 'restart') {
-                await message.reply('n-nite nite.. westarting now! (∪｡∪)｡｡｡zzZ 👋🌸').catch(() => {});
-                process.exit(0);
-            }
-            if (command === 'stats' || command === 'info') {
-                const uptimeStr = formatUptime(client.uptime);
-                const statsEmbed = new EmbedBuilder()
-                    .setColor('#FFB6C1')
-                    .setAuthor({ name: `my widdle stats! 📊✨`, iconURL: client.user.displayAvatarURL() })
-                    .addFields(
-                        { name: '⏳ **Awake Fow**', value: `\`${uptimeStr}\``, inline: true },
-                        { name: '🏓 **Ping**', value: `\`${client.ws.ping}ms\``, inline: true },
-                        { name: '🧠 **Memowy**', value: `\`${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB\``, inline: true },
-                        { name: '🏡 **Sewvews**', value: `\`${client.guilds.fetch().then(g => g.size)}\` cozy homes`, inline: true }
-                    ).setFooter({ text: 'wowking hawd to fix ur winks! 💕' });
-                return message.reply({ embeds: [statsEmbed] }).catch(() => {});
-            }
-        }
-        return; 
+    if (msgLower.includes('good bot')) {
+      await safeReact(message, '💖');
+    } else if (msgLower.includes('bad bot')) {
+      await safeReact(message, '🥺');
     }
 
-    // --- 2. ANIME/MANGA MATCHERS ---
-    const animeMatches = [...message.content.matchAll(/{([^}]+)}/g)];
-    const mangaMatches = [...message.content.matchAll(/<([^>]+)>/g)]
-        .filter(m => !m[1].startsWith('http') && !m[1].startsWith(':') && !m[1].startsWith('a:') && !m[1].startsWith('@') && !m[1].startsWith('#') && !m[1].startsWith('&'));
+    if (await handlePrefixCommand(message)) return;
 
-    const searchRequests = [];
-    animeMatches.forEach(m => searchRequests.push({ name: m[1], type: 'ANIME' }));
-    mangaMatches.forEach(m => searchRequests.push({ name: m[1], type: 'MANGA' }));
+    await handleMediaSearches(message, getRuntimeContext());
 
-    if (searchRequests.length > 0) {
-        await message.channel.sendTyping().catch(() => {});
-        for (const req of searchRequests.slice(0, 3)) {
-            try {
-                const media = await fetchAniList(req.name, req.type, message.channel.nsfw);
-                const title = media.title.english || media.title.romaji || media.title.native;
-                let cleanDesc = media.description ? media.description.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '') : 'No description awaiwable... 🥺';
-                if (cleanDesc.length > 300) cleanDesc = cleanDesc.substring(0, 300) + `... [read morwe](${media.siteUrl})`;
+    if (await handleUrlFixes(message, getRuntimeContext())) return;
+    if (await handleMagic8Ball(message, getRuntimeContext())) return;
 
-                const mediaEmbed = new EmbedBuilder()
-                    .setTitle(`🎀 ${title}`).setURL(media.siteUrl)
-                    .setColor(media.coverImage.color ? media.coverImage.color : '#FFB6C1')
-                    .setImage(media.coverImage.large) 
-                    .setDescription(`**Genres:** *${media.genres.join(', ')}*\n\n${cleanDesc}`)
-                    .setFooter({ text: `${media.format ? media.format.replace('_', ' ') : 'UNKNOWN'} • ${media.status ? media.status.replace('_', ' ') : 'UNKNOWN'}`, iconURL: 'https://anilist.co/img/logo_al.png' });
-                await message.channel.send({ embeds: [mediaEmbed] }).catch(() => {});
-            } catch (err) {}
-        }
-    }
-
-    // --- 3. URL FIXERS (CONSOLIDATED LOGIC) ---
-    const urlRegexLocal = new RegExp(`https?:\\/\\/(www\\.)?(${escapedDomains})\\/[^\\s]+`, 'gi');
-    const urlMatches = [...message.content.matchAll(urlRegexLocal)];
-    let urlFixed = false;
-    
-    if (urlMatches.length > 0) {
-        let fixedData = [];
-        let originalText = message.content;
-
-        for (const matchObj of urlMatches) {
-            try {
-                const fullMatch = matchObj[0];
-                const urlIndex = matchObj.index; 
-                const isEscaped = urlIndex > 0 && message.content[urlIndex - 1] === '<' && message.content[urlIndex + fullMatch.length] === '>';
-                
-                if (!isEscaped) {
-                    const cleanMatch = fullMatch.replace(/[.,;!)\]'"<>]+$/, '');
-                    const url = new URL(cleanMatch);
-                    const hostname = url.hostname.replace(/^www\./, '');
-
-                    if (domainMap[hostname]) {
-                        const creatorHandle = extractCreatorHandle(cleanMatch, hostname);
-                        url.hostname = domainMap[hostname];
-
-                        if (!fixedData.some(d => d.originalUrl === cleanMatch)) {
-                            fixedData.push({ proxyUrl: url.toString(), originalUrl: cleanMatch, handle: creatorHandle });
-                            originalText = originalText.split(cleanMatch).join('');
-                            urlFixed = true;
-                        }
-                    }
-                }
-            } catch (error) {}
-        }
-
-        if (urlFixed && fixedData.length > 0) {
-            try {
-                const hasAttachments = message.attachments.size > 0;
-                const isReply = message.reference !== null;
-                let needsPerms = false;
-                let messageDeleted = false;
-                const botPerms = message.guild.members.me?.permissionsIn(message.channel);
-
-                if (!hasAttachments && !isReply) {
-                    if (botPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
-                        try { await message.delete(); messageDeleted = true; } 
-                        catch (err) { if (err.code === 50013) needsPerms = true; }
-                    } else { needsPerms = true; }
-                }
-
-                if (!messageDeleted && botPerms?.has(PermissionsBitField.Flags.ManageMessages)) {
-                    try { await message.suppressEmbeds(true); } catch (err) {}
-                }
-
-                originalText = originalText.replace(/\s+/g, ' ').trim();
-                if (originalText.length > 1000) originalText = originalText.substring(0, 1000) + '... *(text too wong!)*';
-
-                const randomFace = ['꒰ ˶• ༝ •˶꒱', '( ๑ ˃̵ᴗ˂̵)و', '(✿ ♡‿♡)', 'ʕ•́ᴥ•̀ʔっ', '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧', '(⁄ ⁄•⁄ω⁄•⁄ ⁄)', '૮ ˶ᵔ ᵕ ᵔ˶ ა'][Math.floor(Math.random() * 7)];
-                const cuteEmbed = new EmbedBuilder()
-                    .setColor('#FFB6C1') 
-                    .setAuthor({ name: `${message.author.username} shawed a post! ${randomFace}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
-
-                if (originalText.length > 0) cuteEmbed.setDescription(`> 💬 *${originalText}*`);
-                fixedData.forEach(data => cuteEmbed.addFields({ name: `╭・🎀 ₊˚⊹ Creator: ${data.handle}`, value: `╰・ [✧ cwick to view owiginal ✧](${data.originalUrl})` }));
-
-                let warningText = needsPerms ? `*(psst.. modewatows! i need \`Manage Messages\` pewms to cwean up the owiginal message 🥺)*` 
-                                : (!messageDeleted && (hasAttachments || isReply)) ? `*(psst.. i didn't dewete ur message so ur attachments/weply wouldn't get wost! 🌸)*` : "";
-
-                await message.channel.send({ content: warningText.length > 0 ? warningText : null, embeds: [cuteEmbed] });
-                await message.channel.send({ content: fixedData.map(data => `[₊˚⊹✧](${data.proxyUrl})`).join('\n') });
-            } catch (error) { console.error('(｡•́︿•̀｡) Ewwow:', error); }
-        }
-        
-        if (urlFixed) return; 
-    }
-
-    // --- 4. 8-BALL PINGS ---
-    if (!urlFixed && message.mentions.has(client.user) && !chatEnabledChannels.has(message.channel.id)) {
-        const textWithoutPing = message.content.replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '').trim();
-        if (textWithoutPing.length > 0) {
-            const replies = ["yes!! definitely!! (๑>ᴗ<๑) ✨", "it is cewtain!! 🐾", "without a doubt, bestie!! 💖", "mhm! signs point to yes! ( ˶ˆ꒳ˆ˵ )", "my widdle cwystal ball says yes! 🔮✨", "hmm.. ask again watew.. im eepy (∪｡∪)｡｡｡zzZ", "i-i can't tell wight now.. sowwy!! 🥺", "concentwate and ask again! ( •̀ᴗ•́ )و ̑̑", "n-no.. i don't think so.. (｡•́︿•̀｡)", "my souwces say no.. *hides* 🙈", "vewy doubtfuw.. 🛑", "nyo way!! (・`ω´・)"];
-            return message.reply(replies[Math.floor(Math.random() * replies.length)]).catch(() => {});
-        } else {
-            const replies = ["hewwo?? did u need me? (・`ω´・)", "weady for duty!! 🛠️( •̀ᴗ•́ )و ̑̑", "uwu? u askin fow an 8ball weading? 🔮✨", "*nuzzles u* 🐾"];
-            return message.reply(replies[Math.floor(Math.random() * replies.length)]).catch(() => {});
-        }
-    }
-    // --- AI CHAT HANDLING ---
-    if (chatEnabledChannels.has(message.channel.id)) {
-        if (!message.content || message.content.trim() === '') return;
-
-        const userCooldown = aiCooldowns.get(message.author.id) || 0;
-        if (Date.now() - userCooldown < 5000) return message.react('⏳').catch(() => {});
-        aiCooldowns.set(message.author.id, Date.now());
-
-        if (isProcessing.has(message.channel.id)) return message.react('⏳').catch(() => {});
-        isProcessing.add(message.channel.id);
-
-        try {
-            await message.channel.sendTyping();
-            let chat = chatSessions.get(message.channel.id);
-            
-            if (!chat) {
-                let formattedHistory = [];
-                if (historyColl) {
-                    const dbHistory = await historyColl.findOne({ channelId: message.channel.id });
-                    if (dbHistory && dbHistory.messages) {
-                        // FIX: Mapping old data to Gemini's strict 'parts' format
-                        formattedHistory = dbHistory.messages.map(msg => ({
-                            role: msg.role === "assistant" ? "model" : msg.role,
-                            parts: [{ text: msg.parts ? msg.parts[0].text : (msg.content || "") }]
-                        }));
-                    }
-                }
-                
-                chat = yappuchinoAI.startChat({ 
-                    history: formattedHistory, 
-                    generationConfig: { maxOutputTokens: 500 } 
-                });
-                chatSessions.set(message.channel.id, chat);
-            }
-
-            const prompt = `[${message.author.username}]: ${message.cleanContent}`;
-            const result = await chat.sendMessage(prompt);
-            const responseText = result.response.text();
-            
-            if (historyColl) {
-                await historyColl.updateOne(
-                    { channelId: message.channel.id },
-                    { $push: { messages: { 
-                        $each: [
-                            { role: "user", parts: [{ text: prompt }] },
-                            { role: "model", parts: [{ text: responseText }] }
-                        ],
-                        $slice: -40 
-                    } } },
-                    { upsert: true }
-                );
-            }
-            return message.reply(responseText.substring(0, 2000));
-        } catch (error) {
-            console.error("Gemini API Error:", error);
-            chatSessions.delete(message.channel.id);
-            return message.reply("s-sowwy... my bwain is huwting wight now (,,>﹏<,,)");
-        } finally {
-            isProcessing.delete(message.channel.id);
-        }
-    }
+    await handleAIChat(message, getRuntimeContext());
+  } catch (error) {
+    console.error('Message handler error:', error);
+  }
 });
 
-(async () => {
-    try {
-        await client.login(process.env.DISCORD_TOKEN);
-        console.clear();
-        console.log(`✧✧･ﾟ* hewwo!! yappuchino is onwine as ${client.user.tag} (๑>ᴗ<๑) *:･ﾟ✧*:･ﾟ✧`);
-        await connectDB();
-        setInterval(updatePresence, 30000); 
-    } catch (err) {
-        console.error("❌ Fatal Startup Error:", err);
-    }
-})();
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    void shutdown(signal);
+  });
+}
+
+async function startBot() {
+  validateEnvironment();
+  await startWebServer();
+  await connectDB();
+  await client.login(process.env.DISCORD_TOKEN);
+}
+
+void startBot().catch(async (err) => {
+  console.error('Fatal Startup Error:', err);
+  await shutdown('startup failure', 1);
+});
