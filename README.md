@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Node.js-18.x+-FFB6C1?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
 </a>
 <a href="https://discord.js.org/">
-  <img src="https://img.shields.io/badge/Discord.js-v14-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
+  <img src="https://img.shields.io/badge/Discord.js-v14+-FFC0CB?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js">
 </a>
 <a href="https://ai.google.dev/">
   <img src="https://img.shields.io/badge/Powered%20by-Gemini%20AI-blue?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini AI">
